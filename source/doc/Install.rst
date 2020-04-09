@@ -42,15 +42,49 @@ Add this line to /boot/loader.conf::
 
 * Use the legacy drivers available from graphics/drm-kmod. Driver name: i915kmsd.
 
+::
+
+    # pkg install -y drm-legacy-kmod
     
 
-Interfaces & Users
+Initial rc config &  Interfaces 
 -------------------------------
 Ethernet 1Gig
 Ethernet 10M
 PPPoE
+::
 
+    #/etc/rc
+    clear_tmp_enable="YES"
+    kld_list="/boot/modules/i915kms.ko"
+    sendmail_enable="NONE"
+    # Set dumpdev to "AUTO" to enable crash dumps, "NO" to disable
+    dumpdev="AUTO"
+    zfs_enable="YES"
+    hostname="mail.oogets.email"
+    network_interfaces="lo0 tun0"
+    ifconfig_tun0=
+    cloned_interfaces="lo1"
+    #ifconfig_re0="DHCP"
+    ifconfig_re0_ipv6="inet6 accept_rtadv"
+    ifconfig_xl0="inet 10.1.1.53 netmask 255.255.255.0"
+    # PPPoE
+    ppp_enable="YES"
+    ppp_mode="ddial"
+    #ppp_nat="YES"
+    ppp_profile="bell"
+    local_unbound_enable="YES"
+    ntpdate_enable="YES"
+    ntpd_enable="YES"
 
+    # Services
+    sshd_enable="YES"
+    named_enable="YES"
+    nginx_enable="yes"
+    mysql_enable="yes"
+    php_fpm_enable="YES"
+
+ 
 
 
 Firewall
@@ -136,9 +170,35 @@ PF rule set in /usr/local/etc/pf.conf::
     pass out quick on $ext_if proto tcp to any port $int_tcp_services
     pass out quick on $ext_if proto udp to any port $int_udp_services
 
+`PPPoE <https://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/userppp.html>`_ Config::
+
+    #################################################################
+    # /etc/ppp/ppp.conf
+    # PPP Configuration File
+    # Originally written by Toshiharu OHNO
+    # Simplified 5/14/1999 by wself@cdrom.com
+    #
+    # See /usr/share/examples/ppp/ for some examples
+    #
+    # $FreeBSD: releng/12.1/usr.sbin/ppp/ppp.conf 338590 2018-09-11 17:05:26Z trasz $
+    #################################################################
+
+    default:
+     set log Phase Chat LCP IPCP CCP tun command
+     set ifaddr 10.0.0.1/0 10.0.0.2/0 255.255.255.0 0.0.0.0
+
+    bell:
+        set device PPPoE:re0
+        set authname b1rhub72
+        set authkey  Bell01
+        set dial
+        set login
+        add default HISADDR                 # Add a (sticky) default route
+
     
+It is important that the routed daemon is not started, as routed tends to delete the default routing table entries created by ppp::
 
-
+    # sysrc router_enable="NO"
 
 Nginx 1.4
 -------------------------------
