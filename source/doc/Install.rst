@@ -94,7 +94,11 @@ PPPoE
    #/etc/rc
        clear_tmp_enable="YES"
        kld_list="/boot/modules/i915kms.ko"
-       sendmail_enable="NONE"
+   # Disable Sendmail by default
+       sendmail_enable="NO"
+       sendmail_submit_enable="NO"
+       sendmail_outbound_enable="NO"
+       sendmail_msp_queue_enable="NO"
    # Set dumpdev to "AUTO" to enable crash dumps, "NO" to disable
        dumpdev="AUTO"
        zfs_enable="YES"
@@ -149,13 +153,24 @@ PF basic secure config::
 
    # /usr/local/etc/pf.conf
    # Basic block all IN execpt ssh, pass all OUT
-       icmp_types = "{ echoreq, unreach}"
+   ext_if = "tun0"
+   int_if0 = "xl0"
+   icmp_types = "{echoreq, unreach}"
+   ip_hub3000 = "65.94.38.227"
+
+   ## Skip loop back interface - Skip all PF processing on interface ##
+       set skip on lo
+
+
 
        block in all
+
+   ## Blocking spoofed packets
+       antispoof quick for $ext_if
+
        pass out all keep state
-       pass quick proto {udp, tcp} from any to any port ssh flags S/SA keep state (max-src-conn 15, max-src-conn-rate 5/3, overload <bruteforce> flush global)
        pass inet proto icmp all icmp-type $icmp_types keep state
-   #pass inet proto icmp from any to any
+       pass in quick on $ext_if inet proto {tcp, udp} from $ip_hub3000 to ($ext_if) port ssh flags S/SA keep state (max-src-conn 15, max-src-conn-rate 5/3)
 
 
 PF rule set in /usr/local/etc/pf.conf::
